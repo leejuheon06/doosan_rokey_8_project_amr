@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IV Pole Panel</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: radial-gradient(circle at top, #18202a 0%, #0b1118 45%, #06090d 100%);
+      color: #f5f7fb;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 34px 24px;
+    }
+
+    .dashboard {
+      width: 100%;
+      max-width: 1180px;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .title {
+      font-size: 38px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .connection {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #55ff55;
+      font-size: 18px;
+      transition: color 0.2s ease;
+    }
+
+    .connection.disconnected {
+      color: #ff4f4f;
+    }
+
+    .connection-dot {
+      width: 15px;
+      height: 15px;
+      background: #42f34f;
+      border-radius: 50%;
+      box-shadow: 0 0 16px rgba(66, 243, 79, 0.9);
+      transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .connection.disconnected .connection-dot {
+      background: #ff3d3d;
+      box-shadow: 0 0 16px rgba(255, 61, 61, 0.85);
+    }
+
+    .card {
+      background: linear-gradient(145deg, rgba(28, 36, 45, 0.94), rgba(13, 19, 26, 0.95));
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
+    }
+
+    .robot-card {
+      min-height: 500px;
+      padding: 26px 32px 30px;
+      margin-bottom: 22px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .robot-title {
+      width: 100%;
+      max-width: 760px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      color: #eaf0f6;
+    }
+
+    .robot-title h2 {
+      font-size: 25px;
+      font-weight: 800;
+    }
+
+    .robot-title span {
+      color: #aab4c0;
+      font-size: 15px;
+    }
+
+    .robot-visual {
+      width: min(760px, 100%);
+      height: 380px;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 18px;
+      background:
+        radial-gradient(circle at 50% 24%, rgba(71, 83, 95, 0.42), transparent 36%),
+        linear-gradient(180deg, rgba(12, 18, 26, 0.15), rgba(0, 0, 0, 0.45));
+      overflow: hidden;
+    }
+
+    .robot-shadow {
+      position: absolute;
+      bottom: 28px;
+      width: 560px;
+      height: 66px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.45);
+      filter: blur(8px);
+    }
+
+    .robot-body {
+      position: relative;
+      width: 520px;
+      height: 260px;
+      border-radius: 52% 52% 42% 42%;
+      background: linear-gradient(180deg, #303640 0%, #141920 58%, #070b10 100%);
+      border: 2px solid rgba(255,255,255,0.08);
+      box-shadow:
+        inset 0 24px 36px rgba(255,255,255,0.06),
+        inset 0 -38px 58px rgba(0,0,0,0.55),
+        0 22px 42px rgba(0,0,0,0.5);
+      transform: perspective(900px) rotateX(16deg);
+    }
+
+    .lidar {
+      position: absolute;
+      top: -76px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 148px;
+      height: 94px;
+      border-radius: 50% 50% 42% 42%;
+      background: linear-gradient(180deg, #30343b, #080b0f 70%);
+      border: 2px solid rgba(255,255,255,0.07);
+      box-shadow: 0 14px 22px rgba(0,0,0,0.48);
+    }
+
+    .lidar::before {
+      content: "";
+      position: absolute;
+      top: -24px;
+      left: 9px;
+      width: 126px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(180deg, #252a31, #11161c);
+      border: 2px solid rgba(255,255,255,0.05);
+    }
+
+    .robot-label {
+      position: absolute;
+      top: 82px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(255,255,255,0.62);
+      letter-spacing: 8px;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .led-panel {
+      position: absolute;
+      left: 50%;
+      top: 128px;
+      transform: translateX(-50%);
+      width: 438px;
+      height: 84px;
+      border-radius: 46px;
+      background: linear-gradient(180deg, #1b2128, #05070a);
+      border: 2px solid rgba(255,255,255,0.08);
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      align-items: center;
+      padding: 0 28px;
+      box-shadow: inset 0 9px 20px rgba(255,255,255,0.04), 0 10px 20px rgba(0,0,0,0.55);
+    }
+
+    .led-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      font-size: 10px;
+      font-weight: 900;
+      color: #f4f7fb;
+      letter-spacing: 0.7px;
+    }
+
+    .led-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #43f54a;
+      box-shadow: 0 0 18px rgba(67, 245, 74, 0.95);
+      transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .led-dot.off {
+      background: #48515b;
+      box-shadow: inset 0 0 4px rgba(0,0,0,0.7);
+    }
+
+    .led-dot.red {
+      background: #ff3d3d;
+      box-shadow: 0 0 18px rgba(255, 61, 61, 0.9);
+    }
+
+    .led-dot.yellow {
+      background: #ffc928;
+      box-shadow: 0 0 18px rgba(255, 201, 40, 0.9);
+    }
+
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 1.08fr 0.78fr 1.08fr 1.08fr;
+      gap: 22px;
+      align-items: stretch;
+    }
+
+    .card-title {
+      font-size: 25px;
+      font-weight: 800;
+      margin-bottom: 26px;
+    }
+
+    .info-card,
+    .control-card,
+    .nurse-card {
+      padding: 28px 26px;
+      min-height: 310px;
+    }
+
+    .battery-content {
+      height: calc(100% - 48px);
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      column-gap: 22px;
+      align-items: center;
+    }
+
+    .battery-left {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .battery-icon {
+      width: 44px;
+      height: 82px;
+      border: 4px solid white;
+      border-radius: 6px;
+      position: relative;
+      padding: 5px;
+      display: flex;
+      align-items: flex-end;
+    }
+
+    .battery-icon::before {
+      content: "";
+      position: absolute;
+      top: -12px;
+      left: 11px;
+      width: 15px;
+      height: 8px;
+      background: white;
+      border-radius: 3px 3px 0 0;
+    }
+
+    .battery-fill {
+      width: 100%;
+      height: 0%;
+      background: #45ee46;
+      border-radius: 2px;
+      box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.25);
+      transition: height 0.25s ease;
+    }
+
+    .battery-percent {
+      color: #4cff4c;
+      font-size: 38px;
+      font-weight: 800;
+    }
+
+    .battery-detail {
+      font-size: 16px;
+      line-height: 2.2;
+      color: #f0f2f5;
+    }
+
+    .battery-bar {
+      grid-column: 1 / -1;
+      height: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.08);
+      margin-top: 22px;
+    }
+
+    .battery-bar-fill {
+      width: 0%;
+      height: 100%;
+      background: #45ee46;
+      border-radius: 999px;
+      transition: width 0.25s ease;
+    }
+
+    .iv-card {
+      text-align: center;
+    }
+
+    .iv-status {
+      font-size: 40px;
+      color: #277bff;
+      font-weight: 900;
+      margin-top: 36px;
+      margin-bottom: 18px;
+    }
+
+    .iv-emoji {
+      font-size: 76px;
+      filter: drop-shadow(0 0 12px rgba(39, 123, 255, 0.28));
+    }
+
+    .button-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      margin-top: 30px;
+    }
+
+    button {
+      border: none;
+      border-radius: 8px;
+      min-height: 82px;
+      color: white;
+      font-size: 22px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: transform 0.15s ease, filter 0.15s ease;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.08);
+    }
+
+    button:active {
+      transform: translateY(0);
+      filter: brightness(0.95);
+    }
+
+    .undock-btn {
+      background: linear-gradient(135deg, #176eff, #0757e9);
+    }
+
+    .dock-btn {
+      background: linear-gradient(135deg, #ff3333, #db1f28);
+    }
+
+    .nurse-btn {
+      width: 100%;
+      margin-top: 30px;
+      min-height: 184px;
+      background: linear-gradient(135deg, #ff9f1a, #ff4d1f);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+    }
+
+    .nurse-icon {
+      font-size: 48px;
+    }
+
+    .message {
+      margin-top: 16px;
+      min-height: 24px;
+      font-size: 15px;
+      color: #cfd6df;
+      text-align: center;
+    }
+
+    @media (max-width: 1100px) {
+      .bottom-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      body {
+        padding: 24px 14px;
+      }
+
+      .top-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+      }
+
+      .title {
+        font-size: 32px;
+      }
+
+      .robot-card {
+        min-height: 420px;
+        padding: 22px 14px;
+      }
+
+      .robot-visual {
+        height: 310px;
+      }
+
+      .robot-body {
+        width: 420px;
+        height: 220px;
+      }
+
+      .led-panel {
+        width: 360px;
+        padding: 0 18px;
+      }
+
+      .bottom-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="dashboard">
+    <header class="top-bar">
+      <h1 class="title">IV Pole Panel</h1>
+      <div id="connectionStatus" class="connection disconnected">
+        <span class="connection-dot"></span>
+        <span id="connectionText">Disconnected</span>
+      </div>
+    </header>
+
+    <section class="card robot-card">
+      <div class="robot-title">
+        <h2>TurtleBot4 LED Panel</h2>
+        <span>MOTORS / COMMS / WIFI / BATTERY / POWER</span>
+      </div>
+
+      <div class="robot-visual">
+        <div class="robot-shadow"></div>
+        <div class="robot-body">
+          <div class="lidar"></div>
+          <div class="robot-label">TURTLEBOT4</div>
+          <div class="led-panel">
+            <div class="led-item">
+              <span>MOTORS</span>
+              <span id="ledMotors" class="led-dot off"></span>
+            </div>
+            <div class="led-item">
+              <span>COMMS</span>
+              <span id="ledComms" class="led-dot off"></span>
+            </div>
+            <div class="led-item">
+              <span>WIFI</span>
+              <span id="ledWifi" class="led-dot off"></span>
+            </div>
+            <div class="led-item">
+              <span>BATTERY</span>
+              <span id="ledBattery" class="led-dot off"></span>
+            </div>
+            <div class="led-item">
+              <span>POWER</span>
+              <span id="ledPower" class="led-dot off"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="bottom-grid">
+      <div class="card info-card">
+        <h2 class="card-title">Battery</h2>
+        <div class="battery-content">
+          <div class="battery-left">
+            <div class="battery-icon">
+              <div id="batteryIconFill" class="battery-fill"></div>
+            </div>
+            <div id="batteryPercent" class="battery-percent">--%</div>
+          </div>
+
+          <div class="battery-detail">
+            <div>Voltage:&nbsp; <span id="batteryVoltage">--</span> V</div>
+            <div>Current:&nbsp; <span id="batteryCurrent">--</span> A</div>
+            <div>Temperature:&nbsp; <span id="batteryTemperature">--</span> ℃</div>
+          </div>
+
+          <div class="battery-bar">
+            <div id="batteryBarFill" class="battery-bar-fill"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card info-card iv-card">
+        <h2 class="card-title">IV Pole Status</h2>
+        <div id="ivStatus" class="iv-status">--</div>
+        <div class="iv-emoji">🛒</div>
+      </div>
+
+      <div class="card control-card">
+        <h2 class="card-title">Control</h2>
+        <div class="button-stack">
+          <button class="undock-btn" onclick="sendCommand('/api/undock')">↥&nbsp;&nbsp;UNDOCK</button>
+          <button class="dock-btn" onclick="sendCommand('/api/dock')">↧&nbsp;&nbsp;DOCK</button>
+        </div>
+        <div id="controlMessage" class="message"></div>
+      </div>
+
+      <div class="card nurse-card">
+        <h2 class="card-title">Nurse Call</h2>
+        <button class="nurse-btn" onclick="sendNurseCall()">
+          <span class="nurse-icon">🔔</span>
+          <span>CALL NURSE</span>
+        </button>
+        <div id="nurseMessage" class="message"></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    function setLed(dotId, value) {
+      const dot = document.getElementById(dotId);
+      const state = String(value ?? 'off').toLowerCase();
+
+      dot.classList.remove('off', 'red', 'yellow');
+
+      if (value === false || state === 'off' || state === '0' || state === 'unknown') {
+        dot.classList.add('off');
+      } else if (state === 'red' || state === 'error' || state === '2') {
+        dot.classList.add('red');
+      } else if (state === 'yellow' || state === '3') {
+        dot.classList.add('yellow');
+      }
+    }
+
+    function updateConnection(isConnected) {
+      const connection = document.getElementById('connectionStatus');
+      const text = document.getElementById('connectionText');
+
+      if (isConnected) {
+        connection.classList.remove('disconnected');
+        text.textContent = 'Connected';
+      } else {
+        connection.classList.add('disconnected');
+        text.textContent = 'Disconnected';
+      }
+    }
+
+    function updateBatteryPercent(value) {
+      const percentText = document.getElementById('batteryPercent');
+      const barFill = document.getElementById('batteryBarFill');
+      const iconFill = document.getElementById('batteryIconFill');
+
+      if (typeof value !== 'number') {
+        percentText.textContent = '--%';
+        barFill.style.width = '0%';
+        iconFill.style.height = '0%';
+        return;
+      }
+
+      const percent = Math.max(0, Math.min(100, value));
+      percentText.textContent = `${percent.toFixed(1)}%`;
+      barFill.style.width = `${percent}%`;
+      iconFill.style.height = `${percent}%`;
+    }
+
+    function setAllLedsOff() {
+      setLed('ledPower', 'off');
+      setLed('ledMotors', 'off');
+      setLed('ledComms', 'off');
+      setLed('ledWifi', 'off');
+      setLed('ledBattery', 'off');
+    }
+
+    async function fetchStatus() {
+      try {
+        const response = await fetch('/api/status');
+        const data = await response.json();
+
+        updateConnection(Boolean(data.connected));
+
+        updateBatteryPercent(typeof data.battery === 'number' ? data.battery : null);
+        document.getElementById('batteryVoltage').textContent = data.battery_voltage ?? '--';
+        document.getElementById('batteryCurrent').textContent = data.battery_current ?? '--';
+        document.getElementById('batteryTemperature').textContent = data.battery_temperature ?? '--';
+        document.getElementById('ivStatus').textContent = data.state ?? '--';
+
+        const leds = data.leds || {};
+        setLed('ledPower', leds.power ?? 'off');
+        setLed('ledMotors', leds.motors ?? 'off');
+        setLed('ledComms', leds.comms ?? 'off');
+        setLed('ledWifi', leds.wifi ?? 'off');
+        setLed('ledBattery', leds.battery ?? 'off');
+      } catch (error) {
+        updateConnection(false);
+        setAllLedsOff();
+      }
+    }
+
+    async function sendCommand(url) {
+      const message = document.getElementById('controlMessage');
+      try {
+        const response = await fetch(url, { method: 'POST' });
+        const data = await response.json();
+        message.textContent = data.message || 'Command sent';
+        message.style.color = data.success ? '#55ff55' : '#ff6666';
+      } catch (error) {
+        message.textContent = 'Command failed';
+        message.style.color = '#ff6666';
+      }
+    }
+
+    async function sendNurseCall() {
+      const message = document.getElementById('nurseMessage');
+      try {
+        const response = await fetch('/api/nurse-call', { method: 'POST' });
+        const data = await response.json();
+        message.textContent = data.message || 'Nurse call sent';
+        message.style.color = data.success ? '#55ff55' : '#ff6666';
+      } catch (error) {
+        message.textContent = 'Nurse call failed';
+        message.style.color = '#ff6666';
+      }
+    }
+
+    fetchStatus();
+    setInterval(fetchStatus, 1000);
+  </script>
+</body>
+</html>

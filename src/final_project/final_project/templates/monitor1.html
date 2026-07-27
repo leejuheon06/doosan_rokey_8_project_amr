@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <!-- 한글 표시를 위한 문자 인코딩 설정 -->
+    <meta charset="UTF-8">
+
+    <!-- 브라우저 탭 제목 -->
+    <title>Monitor1 - Smart IV Pole</title>
+
+    <style>
+        /* 전체 화면 기본 설정 */
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #eef3f8;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 전체 GUI 영역 크기 */
+        .container {
+            width: 760px;
+        }
+
+        /* 상단 제목 스타일 */
+        .title {
+            text-align: center;
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            color: #1f2937;
+        }
+
+        /* 카드들을 2열로 배치 */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        /* 각 기능 카드 공통 스타일 */
+        .card {
+            background: white;
+            border-radius: 18px;
+            padding: 22px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+            text-align: center;
+        }
+
+        /* 카드 제목 스타일 */
+        .card h2 {
+            margin-top: 0;
+            color: #111827;
+            font-size: 24px;
+            text-align: center;
+        }
+
+        /* Dock / Undock 버튼 정렬 */
+        .button-row {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        /* 모든 버튼의 공통 스타일 */
+        button {
+            border: none;
+            border-radius: 12px;
+            padding: 16px 28px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* Dock 버튼 색상 */
+        .dock {
+            background: #2563eb;
+            color: white;
+        }
+
+        /* Undock 버튼 색상 */
+        .undock {
+            background: #16a34a;
+            color: white;
+        }
+
+        /* 간호사 호출 버튼 색상 */
+        .call {
+            background: #f59e0b;
+            color: white;
+            width: 90%;
+            height: 60px;
+            font-size: 22px;
+        }
+
+        /* 배터리 표시 숫자 스타일 */
+        .battery {
+            font-size: 38px;
+            font-weight: bold;
+            color: #16a34a;
+        }
+
+        /* IV Pole 상태 표시 스타일 */
+        .state {
+            font-size: 32px;
+            font-weight: bold;
+            color: #374151;
+        }
+
+        /* 간호사 호출 카드를 2열 전체 너비로 확장 */
+        /* .full {
+            grid-column: span 2;
+            text-align: center;
+        } */
+    </style>
+</head>
+
+<body>
+    <!-- 전체 GUI 컨테이너 -->
+    <div class="container">
+
+        <!-- 화면 상단 제목 -->
+        <div class="title">Smart IV Pole Control Panel</div>
+
+        <!-- 기능 카드 배치 영역 -->
+        <div class="grid">
+
+            <!-- 이동 여부 카드: Dock / Undock 버튼 -->
+            <div class="card">
+                <h2>이동 여부</h2>
+
+                <div class="button-row">
+                    <!-- Dock 버튼 클릭 시 sendDock() 실행 -->
+                    <button class="dock" onclick="sendDock()">Dock</button>
+
+                    <!-- Undock 버튼 클릭 시 sendUndock() 실행 -->
+                    <button class="undock" onclick="sendUndock()">Undock</button>
+                </div>
+            </div>
+
+            <!-- IV Pole 상태 카드 -->
+            <div class="card">
+                <h2>IV Pole 상태</h2>
+
+                <!-- Flask API에서 받아온 Dock 상태를 표시할 영역 -->
+                <div class="state" id="state">Not connect</div>
+            </div>
+
+            <!-- 배터리 카드 -->
+            <div class="card">
+                <h2>배터리</h2>
+
+                <!-- Flask API에서 받아온 배터리 잔량을 표시할 영역 -->
+                <div class="battery"><span id="battery">--</span>%</div>
+            </div>
+
+            <!-- 간호사 호출 카드 -->
+            <div class="card">
+                <h2>간호사 호출</h2>
+
+                <!-- 간호사 호출 버튼 클릭 시 callNurse() 실행 -->
+                <button class="call" onclick="callNurse()">호출</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 배터리 50% 경고 팝업을 중복해서 띄우지 않기 위한 변수
+        let battery50AlertShown = false;
+
+        // Dock 버튼 클릭 시 실행되는 함수
+        function sendDock() {
+            fetch('/api/dock', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                updateStatus();
+            });
+        }
+
+        // Undock 버튼 클릭 시 실행되는 함수
+        function sendUndock() {
+            fetch('/api/undock', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                updateStatus();
+            });
+        }
+
+        // 간호사 호출 버튼 클릭 시 실행되는 함수
+        function callNurse() {
+            fetch('/api/nurse-call', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+            });
+        }
+
+        // Flask 서버에서 현재 상태를 가져와 화면을 갱신하는 함수
+        function updateStatus() {
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('battery').innerText = data.battery;
+                    document.getElementById('state').innerText = data.state;
+
+                    const batteryValue = Number(data.battery);
+
+                    if (batteryValue === 50 && battery50AlertShown === false) {
+                        alert("배터리 잔량이 50%입니다.");
+                        battery50AlertShown = true;
+                    }
+
+                    if (batteryValue !== 50) {
+                        battery50AlertShown = false;
+                    }
+                });
+        }
+
+        // 1초마다 상태 갱신
+        setInterval(updateStatus, 1000);
+
+        // 페이지가 처음 열렸을 때 즉시 한 번 상태 갱신
+        updateStatus();
+    </script>
+</body>
+</html>

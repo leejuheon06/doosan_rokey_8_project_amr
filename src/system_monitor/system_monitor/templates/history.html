@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>수액 투약 아카이브 기록서</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* 메인 페이지와 통일된 다크 테마 디자인 */
+        body { background-color: #1e222b; color: #ffffff; font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; }
+        .card { background-color: #282c34; border: 1px solid #4b5263; color: #ffffff; border-radius: 8px; }
+        .card-header { background-color: #21252b !important; border-bottom: 1px solid #4b5263 !important; font-weight: bold; color: #ffffff; }
+        .text-muted { color: #ced4da !important; }
+        .table-teal { color: #4db6ac; } /* 수액 종류 강조색 */
+        
+        /* 테이블 행 마우스 오버 효과 */
+        .table-dark tbody tr:hover { background-color: #323844 !important; transition: 0.2s; }
+    </style>
+</head>
+<body class="py-4">
+
+<div class="container mt-2">
+    <header class="pb-3 mb-4 border-bottom d-flex justify-content-between align-items-center">
+        <span class="fs-4 fw-bold text-info">📋 병동 수액 투약 누적 아카이브 (종합 이력)</span>
+        <div>
+            <button class="btn btn-primary fw-bold me-2" onclick="window.location.reload(true)">🔄 이력 새로고침</button>
+            <button class="btn btn-outline-light fw-bold text-white bg-secondary" onclick="location.href='/'">🏠 관제화면 이동</button>
+        </div>
+    </header>
+
+    <div class="card shadow">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>📦 SQLite 데이터베이스 저장소 이력</span>
+            <span id="data-count" class="badge bg-info text-dark">0건의 데이터</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-striped mb-0 text-center align-middle" style="border-collapse: collapse;">
+                    <thead>
+                        <tr class="text-secondary">
+                            <th class="py-3">환자 ID</th>
+                            <th class="py-3">담당 간호사 ID</th>
+                            <th class="py-3">투약 수액제 종류</th>
+                            <th class="py-3">총 용량</th>
+                            <th class="py-3">투약을 시작한 시간</th>
+                            <th class="py-3">종료(예정) 시간</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-tbody">
+                        <tr><td colspan="6" class="py-5 text-muted">데이터를 로드하는 중입니다...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <footer class="mt-4 text-center">
+        <p class="text-muted small">본 시스템은 SQLite3 데이터베이스와 실시간으로 연동되며, 모든 투약 기록은 자동으로 아카이빙됩니다.</p>
+    </footer>
+</div>
+
+<script>
+    // 페이지 로드 시 즉시 데이터 불러오기
+    window.onload = function() {
+        loadHistory();
+    };
+
+    /**
+     * Flask API(/api/history)로부터 투약 이력을 가져와서 테이블에 렌더링
+     */
+    function loadHistory() {
+        // 주소 뒤에 고유한 타임스탬프(?_=시간)를 붙여 브라우저의 강제 캐싱을 방지합니다.
+        fetch('/api/history?_=' + new Date().getTime())
+        .then(res => res.json())
+        .then(data => {
+            const tbody = document.getElementById('history-tbody');
+            const countBadge = document.getElementById('data-count');
+            
+            tbody.innerHTML = ''; // 기존 내용 초기화
+            countBadge.innerText = `${data.length}건의 데이터`;
+
+            // 데이터가 없는 경우 처리
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="py-5 text-muted">기록된 이력이 존재하지 않습니다.</td></tr>`;
+                return;
+            }
+
+            // 데이터를 순회하며 테이블 행(tr) 생성
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="fw-bold">${row.patient_id}</td>
+                    <td>${row.nurse_id}</td>
+                    <td class="fw-bold text-info">${row.fluid_name}</td>
+                    <td>${row.fluid_volume} ml</td>
+                    <td class="small">${row.started_at}</td>
+                    <td class="small text-warning">${row.estimated_end_at}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        })
+        .catch(err => {
+            console.error("데이터 로드 에러:", err);
+            const tbody = document.getElementById('history-tbody');
+            tbody.innerHTML = `<tr><td colspan="6" class="py-5 text-danger">서버 연동 오류가 발생했습니다.</td></tr>`;
+        });
+    }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
